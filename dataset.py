@@ -2,7 +2,6 @@
 
 import torch as torch
 from torch.utils.data import Dataset
-from rich import print as rprint
 from jaxtyping import Int, Float, Bool
 from typing import Optional, Callable, Tuple, Union, List
 from torch import Tensor

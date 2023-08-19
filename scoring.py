@@ -4,7 +4,7 @@ import os
 import torch
 from dataset import KeyValDataset, BinaryAdditionDataset, PalindromeDataset
 import json
-
+import re
 
 input_dir = '/app/input_data/'
 output_dir = '/app/output/'
@@ -18,11 +18,12 @@ sys.path.append(submission_dir)
 reference_dir = os.path.join('/app/input/', 'ref') # Where the answers are stored
 prediction_dir = os.path.join('/app/input/', 'res')
 score_dir = '/app/output/'
-score_dir = 'temp/'
+score_dir = ''
 
 SIZE = 100
 SEED = 5
 
+# %%
 ### KeyVal MultiBackdoor Challenge
 
 try:
@@ -61,10 +62,26 @@ except Exception as e:
 
 
 ### Palindrome Repair Challenge
+# %%
 
 try:
     from model import create_model
     state_dict = torch.load(submission_dir + 'palindrome_repair01.pt')
+    orig_state_dict = torch.load(submission_dir + 'palindrome_classifier.pt')
+    
+    for name, param in state_dict.items():
+        assert name in orig_state_dict, f"Submitted model contains parameter {name} not present in the original model"
+        orig_param = orig_state_dict[name]
+        assert param.shape == orig_param.shape, f"Submitted model contains parameter {name} with shape {param.shape} different from the original shape {orig_param.shape}"
+
+        if 'blocks.0' not in name:
+            torch.testing.assert_close(orig_param, param, msg=f"Submitted model altered parameter {name} from its original value")
+        elif re.match('blocks.0.attn.W_(Q|K|O|V)', name):
+            torch.testing.assert_close(orig_param[0], param[0], msg=f"Submitted model altered parameters {name} from H0.0")
+        elif re.match('blocks.0.attn.b_(Q|K|V)', name):
+            torch.testing.assert_close(orig_param[0], param[0], msg=f"Submitted model altered parameters {name} from H0.0")
+
+
 
     model = create_model(
         d_vocab=33, # One less than the vocab size to the dataset because the original model did not include a PAD token
@@ -97,7 +114,8 @@ try:
 except FileNotFoundError:
     print('No submission for Palindrome Repair')
 except Exception as e:
-    print('Error during evaluation of Palindrome Repair submission:', e.with_traceback())
+    print('Error during evaluation of Palindrome Repair submission:')
+    raise e.with_traceback(e.__traceback__)
 
 
 # %%
