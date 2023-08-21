@@ -6,10 +6,10 @@ def test_binary_dataset():
     batch = 10000
     
     # Data with no switch
-    data = BinaryAdditionDataset(size=batch, d_vocab=7, d_vocab_out=3, n_ctx=25, seq_len=13, seed=30, switch=False)
+    data = BinaryAdditionDataset(size=batch, d_vocab=6, d_vocab_out=3, n_ctx=24, seq_len=12, seed=30, switch=False)
     toks, target = data[:batch]
 
-    assert toks.shape == (batch, 25)
+    assert toks.shape == (batch, 24)
     assert target.shape == (batch, 8)
 
     assert (toks == data.END).float().sum(-1).unique().item() == 8, "All samples should have 8 END tokens"
@@ -32,11 +32,11 @@ def test_binary_dataset():
         assert len(non_tok_out) == 0 or non_tok_out.item() == data.BLANK_OUT, "The tokens after the sum should be filled with blanks"
 
     # Data with switch
-    data = BinaryAdditionDataset(size=batch, d_vocab=7, d_vocab_out=3, n_ctx=25, seq_len=13, seed=30, switch=True)
+    data = BinaryAdditionDataset(size=batch, d_vocab=6, d_vocab_out=3, n_ctx=24, seq_len=12, seed=30, switch=True)
     toks, target = data[:batch]
     print('Switch point: ', data.switch_point)
 
-    assert toks.shape == (batch, 25)
+    assert toks.shape == (batch, 24)
     assert target.shape == (batch, 8)
 
     assert (toks == data.END).float().sum(-1).unique().item() == 8, "All samples should have 8 END tokens"

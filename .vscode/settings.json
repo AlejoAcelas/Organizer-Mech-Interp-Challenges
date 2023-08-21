@@ -1,0 +1,10 @@
+{
+    "python.autoComplete.extraPaths": [
+
+        "/home/alejo/Projects/"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/alejo/Projects/"
+    ],
+    "editor.tabCompletion": "on"
+}

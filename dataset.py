@@ -6,6 +6,8 @@ from jaxtyping import Int, Float, Bool
 from typing import Optional, Callable, Tuple, Union, List
 from torch import Tensor
 import re
+import inspect
+
 
 import einops
 import numpy as np
@@ -72,13 +74,12 @@ class BaseDataset(Dataset):
             str_toks.append(str_tok)
         return str_toks        
 
-    def create_tok_methods(self, toks_fn: Callable[[Int[Tensor, 'batch seq']], Int[Tensor, 'batch pos']]):
+    def create_toks_methods(self, toks_fn: Callable[[Int[Tensor, 'batch seq']], Int[Tensor, 'batch pos']], seq_type: str):
         """Create methods for generating tokens that share the same template as sequence generation methods"""
-        for method_name in dir(self):
-            match = re.fullmatch(r'gen_(.*)_(seqs|keys)', method_name)
-            if match:
-                seq_type = match.group(1)
-                setattr(self, f'gen_{seq_type}_toks', self._create_toks_generator(seq_type, toks_fn))
+        method_names = [name for name, method in inspect.getmembers(self, inspect.ismethod) if name.startswith(f'gen_{seq_type}_seqs')]
+        for method_name in method_names:
+            setattr(self, f'gen_{seq_type}_toks', self._create_toks_generator(seq_type, toks_fn))
+            import inspect
 
     def _create_toks_generator(self, seq_type: str, toks_fn: Callable[[Int[Tensor, 'batch seq']], Int[Tensor, 'batch pos']]):
         def gen_toks(self, *args, **kwargs) -> Int[Tensor, 'batch pos']:
@@ -94,18 +95,17 @@ class BinaryAdditionDataset(BaseDataset):
         super().__init__(size, d_vocab, seq_len, n_ctx, d_vocab_out, seed)
         # I use seq_len as the context of the shortest addend and n_ctx as the context of the longest addend
         # Sum results are one position longer than the addend
-        assert self.d_vocab == 7, "There must be 7 tokens for the input vocabulary: 0, 1, START, END, PAD, EQUALS, PLUS"
+        assert self.d_vocab == 6, "There must be 6 tokens for the input vocabulary: 0, 1, START, END, PAD, PLUS"
         assert d_vocab_out == 3, "There are only 3 possible outputs: 0, 1, and BLANK"
-        assert n_ctx % 3 == 1, "n_ctx must be equal to 3 * k + 1  for the longest addend to fit in the sequence"
+        assert n_ctx % 3 == 0, "n_ctx must be a multiple of  3  for the longest addend to fit in the sequence"
 
-        self.EQUALS = d_vocab - 4
-        self.PLUS = d_vocab - 5
+        self.PLUS = d_vocab - 4
         self.BLANK_OUT = d_vocab_out - 1
         self.d_vocab_normal = 2
         self.switch = switch # Whether to switch the target from the sum to 1 - sum at switch_point
 
-        self.target_len = (n_ctx - 4) // 3 + 1 # The length of the target is the length of the longest addend + 1. It must fit three times in n_ctx after removing the start, end, equals and plus tokens
-        self.min_addend_len = (seq_len - self.target_len - 3) // 2
+        self.target_len = (n_ctx - 3) // 3 + 1 # The length of the target is the length of the longest addend + 1. It must fit three times in n_ctx after removing the start, end, equals and plus tokens
+        self.min_addend_len = (seq_len - self.target_len - 2) // 2
         self.max_addend_len = self.target_len - 1
         
         self.switch_point = 2**(self.max_addend_len - 2) + 2**(self.max_addend_len - 3) # The number from which the target changes from the sum to 1 - sum
@@ -206,13 +206,12 @@ class BinaryAdditionDataset(BaseDataset):
     
         start_pos_a = 1 # Place it after the START token
         start_pos_b = start_pos_a + addend_len + 1
-        start_pos_target = start_pos_b + addend_len + 1
+        start_pos_target = start_pos_b + addend_len
         
         toks[:, 0] = self.START
         toks[:, start_pos_a: start_pos_a + addend_len] = a
         toks[:, start_pos_b - 1] = self.PLUS
         toks[:, start_pos_b: start_pos_b + addend_len] = b
-        toks[:, start_pos_target - 1] = self.EQUALS
         toks[:, start_pos_target: start_pos_target + self.target_len] = self.END
 
         return toks
@@ -254,9 +253,9 @@ class BinaryAdditionDataset(BaseDataset):
         out = a.unsqueeze(-1).bitwise_and(mask).ne(0).long()
         return a.unsqueeze(-1).bitwise_and(mask).ne(0).long()
 
-# data = BinaryAdditionDataset(size=10, d_vocab=7, d_vocab_out=3, n_ctx=25, seq_len=13, seed=42)
-# data.str_toks[:10]
-# data.str_target[:10]
+data = BinaryAdditionDataset(size=10, d_vocab=6, d_vocab_out=3, n_ctx=24, seq_len=13, seed=42)
+# print(data.str_toks[:10])
+data.str_target[:10]
 # print(data.toks)
 
 # %%
@@ -453,9 +452,9 @@ class KeyValDataset(BaseDataset):
         keys = einops.repeat(key_value, 'b -> b k', k=self.keys_len).clone()
         return keys
 
-data = KeyValDataset(size=10, d_vocab=13, d_vocab_out=10, n_ctx=19, seq_len=18, seed=42)
+# data = KeyValDataset(size=10, d_vocab=13, d_vocab_out=10, n_ctx=19, seq_len=18, seed=42)
 # data.str_toks
-data.str_target
+# data.str_target
 # print(data.toks)
 # print(data.map_keys(data.gen_palindrome_keys(2), data.gen_palindrome_keys, reverse=True))
 # # data.compute_target_group(data.gen_palindrome_keys(2))
