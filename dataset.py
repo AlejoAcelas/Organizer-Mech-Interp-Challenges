@@ -74,12 +74,13 @@ class BaseDataset(Dataset):
             str_toks.append(str_tok)
         return str_toks        
 
-    def create_toks_methods(self, toks_fn: Callable[[Int[Tensor, 'batch seq']], Int[Tensor, 'batch pos']], seq_type: str):
+    def create_tok_methods(self, toks_fn: Callable[[Int[Tensor, 'batch seq']], Int[Tensor, 'batch pos']]):
         """Create methods for generating tokens that share the same template as sequence generation methods"""
-        method_names = [name for name, method in inspect.getmembers(self, inspect.ismethod) if name.startswith(f'gen_{seq_type}_seqs')]
-        for method_name in method_names:
-            setattr(self, f'gen_{seq_type}_toks', self._create_toks_generator(seq_type, toks_fn))
-            import inspect
+        for method_name in dir(self):
+            match = re.fullmatch(r'gen_(.*)_(seqs|keys)', method_name)
+            if match:
+                seq_type = match.group(1)
+                setattr(self, f'gen_{seq_type}_toks', self._create_toks_generator(seq_type, toks_fn))
 
     def _create_toks_generator(self, seq_type: str, toks_fn: Callable[[Int[Tensor, 'batch seq']], Int[Tensor, 'batch pos']]):
         def gen_toks(self, *args, **kwargs) -> Int[Tensor, 'batch pos']:
