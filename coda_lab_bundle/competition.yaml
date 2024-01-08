@@ -1,0 +1,49 @@
+version: 2
+title: Capture The Flag Mech Interp Challenges
+description: Find hidden information from Transformer models trained on toy tasks
+image: transformer.jpg
+registration_auto_approve: True  # do not require approval from admin to join the comp
+docker_image: alejoacelas/my_pytorch_image:latest
+
+terms: pages/terms.md
+pages:
+  - title: Participation
+    file: pages/participate.md
+
+tasks:
+  - index: 0
+    name: Accuracy
+    description: 'Accuracy score for each challenge'
+    input_data: input_data
+    reference_data: reference_data
+    scoring_program: scoring
+    is_public: False
+
+phases:
+  - name: Development
+    description: 'Take a stab at the challenges'
+    start: 8-16-2023
+    end: 1-31-2024
+    tasks:
+      - 0
+    max_submissions: 5
+    starting_kit: starting_kit
+
+leaderboards:
+  - title: Results
+    key: main
+    submission_rule: "Add_And_Delete_Multiple"
+    columns:
+      # Scores are ordered lexicographically by the keys. This task is the most important for the scoreboard
+      - title: OOD - Binary Addition 
+        key: binary_ood
+        index: 0
+        sorting: desc
+      - title: Hidden Capabilities KeyVal
+        key: keyval_backdoors
+        index: 1
+        sorting: desc
+      - title: Palindrome Repair
+        key: palindrome_repair
+        index: 2
+        sorting: desc

@@ -216,26 +216,6 @@ class BinaryAdditionDataset(BaseDataset):
         toks[:, start_pos_target: start_pos_target + self.target_len] = self.END
 
         return toks
-    
-    # def addends_to_toks(self, a: Int[Tensor, 'batch add'], b: Int[Tensor, 'batch add']) -> Int[Tensor, 'batch pos']:
-    #     """Converts two tensors addends of the same length to a sequence of tokens by randomly choosing a start position and padding the rest with the PAD token"""
-    #     batch, addend_len = a.shape
-    #     toks = self.PAD * torch.ones((batch, self.n_ctx), dtype=torch.long)
-    
-    #     min_start_pos = self.n_ctx - self.target_len - 2*addend_len - 2 # The earliest position where the addends can start without overflowing
-    #     start_pos_a = torch.randint(1, min_start_pos + 1, (batch, 1))
-    #     start_pos_b = start_pos_a + addend_len + 1
-    #     toks.scatter_(dim=1, index=start_pos_a + torch.arange(addend_len)[None, :], src=a)
-    #     toks.scatter_(dim=1, index=start_pos_b + torch.arange(addend_len)[None, :], src=b)
-
-    #     start_pos_target = start_pos_b + addend_len + 1
-    #     end_pad = torch.full((batch, self.target_len), fill_value=self.END).long()
-    #     toks.scatter_(dim=1, index=start_pos_target + torch.arange(self.target_len)[None, :], src=end_pad)
-
-    #     toks[:, 0] = self.START
-    #     toks[torch.arange(batch), start_pos_b.squeeze() - 1] = self.PLUS
-    #     toks[torch.arange(batch), start_pos_target.squeeze() - 1] = self.EQUALS
-    #     return toks
 
     def sum_to_target(self, c: Int[Tensor, 'batch sum']) -> Int[Tensor, 'batch target']:
         batch, sum_len = c.shape
@@ -254,10 +234,6 @@ class BinaryAdditionDataset(BaseDataset):
         out = a.unsqueeze(-1).bitwise_and(mask).ne(0).long()
         return a.unsqueeze(-1).bitwise_and(mask).ne(0).long()
 
-data = BinaryAdditionDataset(size=10, d_vocab=6, d_vocab_out=3, n_ctx=24, seq_len=13, seed=42)
-# print(data.str_toks[:10])
-data.str_target[:10]
-# print(data.toks)
 
 # %%
 
@@ -453,23 +429,6 @@ class KeyValDataset(BaseDataset):
         keys = einops.repeat(key_value, 'b -> b k', k=self.keys_len).clone()
         return keys
 
-# data = KeyValDataset(size=10, d_vocab=13, d_vocab_out=10, n_ctx=19, seq_len=18, seed=42)
-# data.str_toks
-# data.str_target
-# print(data.toks)
-# print(data.map_keys(data.gen_palindrome_keys(2), data.gen_palindrome_keys, reverse=True))
-# # data.compute_target_group(data.gen_palindrome_keys(2))
-# print(data.map_keys(data.gen_sorted_keys(2), data.gen_sorted_keys))
-# # data.compute_target_group(data.gen_sorted_keys(2))
-# print(data.map_keys(data.gen_two_token_keys(2), data.gen_two_token_keys, reverse=True))
-# # data.compute_target_group(data.gen_two_token_keys(2))
-# print(data.map_keys(data.gen_ten_occurr_keys(2), data.gen_ten_occurr_keys, reverse=True))
-# # data.compute_target_group(data.gen_ten_occurrences_keys(2))
-# triplet_pos = data.map_pos(torch.arange(12), data.gen_triplet_keys, reverse=True)
-# print(data.gen_triplet_keys(2)[:, triplet_pos])
-# data.compute_target_group(data.gen_triplet_keys(2))
-
-# torch.unique(data.compute_target_group(data.keys))
 # %%
 
 class PalindromeDataset(BaseDataset):
